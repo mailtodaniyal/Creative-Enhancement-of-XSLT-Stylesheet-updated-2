@@ -1,0 +1,1224 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>StratML Viewer - SMLC2023</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        :root {
+            --primary: #2c3e50;
+            --secondary: #3498db;
+            --accent: #e74c3c;
+            --success: #2ecc71;
+            --warning: #f39c12;
+            --light: #ecf0f1;
+            --dark: #2c3e50;
+            --text: #333;
+            --card-shadow: 0 10px 20px rgba(0,0,0,0.1);
+            --transition: all 0.3s ease;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            transition: var(--transition);
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+            color: var(--text);
+            line-height: 1.6;
+            padding: 20px;
+            min-height: 100vh;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 10px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+            overflow: hidden;
+            display: grid;
+            grid-template-columns: 300px 1fr;
+        }
+
+        @media (max-width: 1024px) {
+            .container {
+                grid-template-columns: 1fr;
+            }
+            
+            .toc-sidebar {
+                display: none;
+                position: fixed;
+                left: 0;
+                top: 0;
+                height: 100vh;
+                width: 300px;
+                z-index: 1000;
+                box-shadow: 5px 0 15px rgba(0,0,0,0.2);
+            }
+            
+            .toc-sidebar.mobile-open {
+                display: block;
+            }
+            
+            .mobile-toc-toggle {
+                display: block !important;
+            }
+            
+            .content {
+                padding: 15px;
+            }
+        }
+
+        header {
+            background: var(--primary);
+            color: white;
+            padding: 25px;
+            text-align: center;
+            position: relative;
+            overflow: hidden;
+            grid-column: 1 / -1;
+        }
+
+        header::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 5px;
+            background: linear-gradient(90deg, var(--secondary), var(--accent));
+        }
+
+        h1 {
+            font-size: 2.2rem;
+            margin-bottom: 10px;
+            font-weight: 700;
+        }
+
+        .subtitle {
+            opacity: 0.9;
+            font-size: 1.1rem;
+            max-width: 800px;
+            margin: 0 auto;
+        }
+
+        .mobile-toc-toggle {
+            display: none;
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            z-index: 1000;
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            background: var(--secondary);
+            color: white;
+            border: none;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.3);
+            font-size: 1.5rem;
+        }
+
+        .toc-sidebar {
+            background: #f9f9f9;
+            padding: 20px;
+            border-right: 1px solid #eee;
+            height: calc(100vh - 40px);
+            position: sticky;
+            top: 20px;
+            overflow-y: auto;
+        }
+
+        .toc-title {
+            font-size: 1.3rem;
+            color: var(--primary);
+            margin-bottom: 20px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid var(--secondary);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .toc-list {
+            list-style: none;
+        }
+
+        .toc-item {
+            margin-bottom: 8px;
+        }
+
+        .toc-link {
+            display: block;
+            padding: 12px 15px;
+            background: white;
+            border-radius: 6px;
+            text-decoration: none;
+            color: var(--text);
+            font-weight: 500;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+            border-left: 3px solid transparent;
+        }
+
+        .toc-link:hover, .toc-link.active {
+            background: var(--secondary);
+            color: white;
+            border-left-color: var(--accent);
+        }
+
+        .toc-link i {
+            margin-right: 10px;
+            width: 20px;
+            text-align: center;
+        }
+
+        .toc-sublist {
+            list-style: none;
+            margin-top: 5px;
+            margin-left: 20px;
+            display: none;
+        }
+
+        .toc-item.active .toc-sublist {
+            display: block;
+        }
+
+        .content {
+            padding: 25px;
+            overflow-y: auto;
+            max-height: calc(100vh - 40px);
+        }
+
+        .section {
+            margin-bottom: 30px;
+            padding: 25px;
+            background: white;
+            border-radius: 8px;
+            box-shadow: var(--card-shadow);
+            scroll-margin-top: 20px;
+        }
+
+        .section-title {
+            font-size: 1.5rem;
+            color: var(--primary);
+            margin-bottom: 20px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid var(--secondary);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .objective {
+            margin-bottom: 25px;
+            padding: 20px;
+            background: #f9f9f9;
+            border-radius: 8px;
+            border-left: 4px solid var(--secondary);
+        }
+
+        .objective-title {
+            font-size: 1.3rem;
+            color: var(--primary);
+            margin-bottom: 15px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .performance-indicators {
+            margin-top: 20px;
+        }
+
+        .indicator {
+            padding: 18px;
+            margin-bottom: 15px;
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 3px 10px rgba(0,0,0,0.08);
+            border-left: 3px solid var(--secondary);
+        }
+
+        .indicator-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+            cursor: pointer;
+        }
+
+        .indicator-name {
+            font-weight: 600;
+            color: var(--primary);
+            font-size: 1.1rem;
+        }
+
+        .indicator-values {
+            display: flex;
+            gap: 20px;
+            margin-bottom: 15px;
+            flex-wrap: wrap;
+        }
+
+        .value {
+            padding: 8px 15px;
+            border-radius: 6px;
+            background: var(--light);
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+
+        .target {
+            color: var(--secondary);
+            border-left: 3px solid var(--secondary);
+        }
+
+        .actual {
+            color: var(--success);
+            border-left: 3px solid var(--success);
+        }
+
+        .progress-container {
+            height: 10px;
+            background: #eee;
+            border-radius: 5px;
+            overflow: hidden;
+            margin-bottom: 15px;
+            position: relative;
+        }
+
+        .progress-bar {
+            height: 100%;
+            border-radius: 5px;
+            position: relative;
+        }
+
+        .progress-over {
+            background: var(--success);
+        }
+
+        .progress-under {
+            background: var(--accent);
+        }
+
+        .progress-on-track {
+            background: var(--warning);
+        }
+
+        .progress-text {
+            position: absolute;
+            right: 10px;
+            top: -25px;
+            font-size: 0.9rem;
+            font-weight: 600;
+        }
+
+        .view-options {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 15px;
+            flex-wrap: wrap;
+        }
+
+        .view-btn {
+            padding: 10px 18px;
+            border-radius: 6px;
+            border: 1px solid var(--secondary);
+            background: transparent;
+            color: var(--secondary);
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-weight: 600;
+        }
+
+        .view-btn.active {
+            background: var(--secondary);
+            color: white;
+        }
+
+        .view-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+        }
+
+        .chart-container {
+            height: 250px;
+            margin-top: 20px;
+            display: none;
+        }
+
+        .expand-btn {
+            background: none;
+            border: none;
+            color: var(--secondary);
+            cursor: pointer;
+            font-size: 1.3rem;
+            width: 30px;
+            height: 30px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 50%;
+            background: var(--light);
+        }
+
+        .expand-btn:hover {
+            background: var(--secondary);
+            color: white;
+        }
+
+        .stakeholders {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+            gap: 15px;
+            margin-top: 20px;
+        }
+
+        .stakeholder {
+            padding: 15px;
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+        }
+
+        .stakeholder-name {
+            font-weight: 600;
+            color: var(--primary);
+            margin-bottom: 5px;
+        }
+
+        .stakeholder-role {
+            color: var(--secondary);
+            font-size: 0.9rem;
+            margin-bottom: 10px;
+        }
+
+        .stakeholder-description {
+            font-size: 0.9rem;
+            color: var(--text);
+        }
+
+        footer {
+            text-align: center;
+            padding: 25px;
+            color: var(--dark);
+            font-size: 0.9rem;
+            border-top: 1px solid var(--light);
+            background: #f9f9f9;
+            grid-column: 1 / -1;
+        }
+
+        .download-btn {
+            display: inline-block;
+            margin-top: 15px;
+            padding: 12px 25px;
+            background: var(--secondary);
+            color: white;
+            text-decoration: none;
+            border-radius: 6px;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            width: fit-content;
+            margin: 20px auto 0;
+            border: none;
+            cursor: pointer;
+        }
+
+        .download-btn:hover {
+            background: var(--primary);
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+        }
+
+        @media (max-width: 768px) {
+            .indicator-values {
+                flex-direction: column;
+                gap: 10px;
+            }
+            
+            .view-options {
+                flex-direction: column;
+            }
+            
+            .view-btn {
+                width: 100%;
+                justify-content: center;
+            }
+            
+            .stakeholders {
+                grid-template-columns: 1fr;
+            }
+            
+            .section {
+                padding: 15px;
+            }
+            
+            .objective {
+                padding: 15px;
+            }
+        }
+
+        .info-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 15px;
+            margin-top: 20px;
+        }
+
+        .info-card {
+            padding: 15px;
+            background: #f9f9f9;
+            border-radius: 8px;
+        }
+
+        .values-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>2022 - 2023 Performance Report</h1>
+            <p class="subtitle">Strategy Markup Language Community (SMLC)</p>
+        </header>
+
+        <div class="toc-sidebar">
+            <h2 class="toc-title"><i class="fas fa-list"></i> Table of Contents</h2>
+            <ul class="toc-list">
+                <li class="toc-item"><a href="#overview" class="toc-link"><i class="fas fa-info-circle"></i> Overview</a></li>
+                <li class="toc-item"><a href="#vision" class="toc-link"><i class="fas fa-eye"></i> Vision</a></li>
+                <li class="toc-item"><a href="#mission" class="toc-link"><i class="fas fa-bullseye"></i> Mission</a></li>
+                <li class="toc-item">
+                    <a href="#values" class="toc-link"><i class="fas fa-heart"></i> Values</a>
+                    <ul class="toc-sublist">
+                        <li><a href="#openness" class="toc-link">Openness</a></li>
+                        <li><a href="#standards" class="toc-link">Standards</a></li>
+                        <li><a href="#machine-readability" class="toc-link">Machine Readability</a></li>
+                        <li><a href="#performance" class="toc-link">Performance</a></li>
+                        <li><a href="#results" class="toc-link">Results</a></li>
+                    </ul>
+                </li>
+                <li class="toc-item">
+                    <a href="#part1" class="toc-link"><i class="fas fa-flag"></i> Part 1: Strategic Plans</a>
+                    <ul class="toc-sublist">
+                        <li><a href="#objective1_1" class="toc-link">1.1: ANSI/AIIM Publication</a></li>
+                        <li><a href="#objective1_2" class="toc-link">1.2: StratML Part 1 Files</a></li>
+                        <li><a href="#objective1_3" class="toc-link">1.3: Tools, Applications & Services</a></li>
+                        <li><a href="#objective1_4" class="toc-link">1.4: ISO Standard</a></li>
+                        <li><a href="#objective1_5" class="toc-link">1.5: Training</a></li>
+                    </ul>
+                </li>
+                <li class="toc-item">
+                    <a href="#part2" class="toc-link"><i class="fas fa-chart-line"></i> Part 2: Performance Plans</a>
+                    <ul class="toc-sublist">
+                        <li><a href="#objective2_1" class="toc-link">2.1: ANSI/AIIM Publication</a></li>
+                        <li><a href="#objective2_2" class="toc-link">2.2: StratML Part 2 Files</a></li>
+                        <li><a href="#objective2_3" class="toc-link">2.3: Tools, Applications & Services</a></li>
+                        <li><a href="#objective2_4" class="toc-link">2.4: NIEM Implementation Profile</a></li>
+                        <li><a href="#objective2_5" class="toc-link">2.5: ISO Standard</a></li>
+                    </ul>
+                </li>
+                <li class="toc-item">
+                    <a href="#part3" class="toc-link"><i class="fas fa-plus-circle"></i> Part 3: Additional Elements</a>
+                    <ul class="toc-sublist">
+                        <li><a href="#objective3_1" class="toc-link">3.1: GPRAMA</a></li>
+                        <li><a href="#objective3_2" class="toc-link">3.2: Other Elements</a></li>
+                        <li><a href="#objective3_3" class="toc-link">3.3: ANSI/AIIM Publication</a></li>
+                    </ul>
+                </li>
+                <li class="toc-item"><a href="#stakeholders" class="toc-link"><i class="fas fa-users"></i> Stakeholders</a></li>
+            </ul>
+        </div>
+
+        <div class="content">
+            <div class="section" id="overview">
+                <h2 class="section-title"><i class="fas fa-info-circle"></i> Overview</h2>
+                <p>This report covers results achieved by participants in the Strategy Markup Language (StratML) community during 2022 - 2023. It is cumulative in the sense that it also documents results previously accomplished. There are now more than 5,800 files in the StratML collection.</p>
+                <p>Please let us know if you have proposed additions or corrections. Comments and suggestions with respect to prospective goals and objectives are also welcome, particularly if you would like to participate in developing StratML tools, applications, and services.</p>
+                
+                <div class="info-grid">
+                    <div class="info-card">
+                        <h3 style="color: var(--primary); margin-bottom: 10px;"><i class="fas fa-calendar"></i> Dates</h3>
+                        <p><strong>Start:</strong> 2022-01-01</p>
+                        <p><strong>End:</strong> 2023-12-31</p>
+                        <p><strong>Publication Date:</strong> 2024-01-06</p>
+                    </div>
+                    <div class="info-card">
+                        <h3 style="color: var(--primary); margin-bottom: 10px;"><i class="fas fa-user"></i> Submitter</h3>
+                        <p><strong>Name:</strong> Owen Ambur</p>
+                        <p><strong>Email:</strong> Owen.Ambur@verizon.net</p>
+                    </div>
+                    <div class="info-card">
+                        <h3 style="color: var(--primary); margin-bottom: 10px;"><i class="fas fa-building"></i> Organization</h3>
+                        <p><strong>Name:</strong> Strategy Markup Language Community</p>
+                        <p><strong>Acronym:</strong> SMLC</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="section" id="vision">
+                <h2 class="section-title"><i class="fas fa-eye"></i> Vision</h2>
+                <p>A worldwide web of intentions, stakeholders, and results.</p>
+            </div>
+
+            <div class="section" id="mission">
+                <h2 class="section-title"><i class="fas fa-bullseye"></i> Mission</h2>
+                <p>To foster awareness and usage as well as updating and maintenance of Strategy Markup Language (StratML), an XML-based voluntary consensus standard for the information commonly contained in strategic and performance plans and reports.</p>
+            </div>
+
+            <div class="section" id="values">
+                <h2 class="section-title"><i class="fas fa-heart"></i> Values</h2>
+                <div class="values-grid">
+                    <div class="info-card" style="text-align: center;">
+                        <h3 id="openness" style="color: var(--primary); margin-bottom: 10px;">Openness</h3>
+                    </div>
+                    <div class="info-card" style="text-align: center;">
+                        <h3 id="standards" style="color: var(--primary); margin-bottom: 10px;">Standards</h3>
+                    </div>
+                    <div class="info-card" style="text-align: center;">
+                        <h3 id="machine-readability" style="color: var(--primary); margin-bottom: 10px;">Machine Readability</h3>
+                    </div>
+                    <div class="info-card" style="text-align: center;">
+                        <h3 id="performance" style="color: var(--primary); margin-bottom: 10px;">Performance</h3>
+                    </div>
+                    <div class="info-card" style="text-align: center;">
+                        <h3 id="results" style="color: var(--primary); margin-bottom: 10px;">Results</h3>
+                    </div>
+                </div>
+            </div>
+
+            <div class="section" id="part1">
+                <h2 class="section-title"><i class="fas fa-flag"></i> Part 1: Strategic Plans</h2>
+                <p>Specify and foster usage of an XML standard for the information commonly contained in strategic plans.</p>
+
+                <div class="objective" id="objective1_1">
+                    <h3 class="objective-title"><i class="fas fa-book"></i> 1.1: ANSI/AIIM Publication</h3>
+                    <p>Publish Part 1, Strategic Plans, as an American (ANSI/AIIM) national standard.</p>
+                    
+                    <div class="performance-indicators">
+                        <div class="indicator">
+                            <div class="indicator-header">
+                                <span class="indicator-name">Publication Status</span>
+                                <button class="expand-btn">+</button>
+                            </div>
+                            <div class="indicator-values">
+                                <span class="value target"><i class="fas fa-bullseye"></i> Target: Publication</span>
+                                <span class="value actual"><i class="fas fa-chart-line"></i> Actual: Published (2009-12-17)</span>
+                            </div>
+                            <div class="progress-container">
+                                <div class="progress-bar progress-over" style="width: 100%"></div>
+                                <span class="progress-text">100%</span>
+                            </div>
+                            <div class="view-options">
+                                <button class="view-btn active" data-view="progress"><i class="fas fa-chart-bar"></i> Progress Bar</button>
+                                <button class="view-btn" data-view="chart"><i class="fas fa-chart-pie"></i> Pie Chart</button>
+                            </div>
+                            <div class="chart-container">
+                                <canvas id="chart-1-1"></canvas>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="objective" id="objective1_2">
+                    <h3 class="objective-title"><i class="fas fa-file-code"></i> 1.2: StratML Part 1 Files</h3>
+                    <p>Convert strategic plans into StratML format to demonstrate and prove the elements of the standard.</p>
+                    
+                    <div class="performance-indicators">
+                        <div class="indicator">
+                            <div class="indicator-header">
+                                <span class="indicator-name">Plans Converted Over Time</span>
+                                <button class="expand-btn">+</button>
+                            </div>
+                            <div class="indicator-values">
+                                <span class="value target"><i class="fas fa-bullseye"></i> Target: Continuous Growth</span>
+                                <span class="value actual"><i class="fas fa-chart-line"></i> Actual: 5,825 Files (2024-01-06)</span>
+                            </div>
+                            <div class="progress-container">
+                                <div class="progress-bar progress-over" style="width: 97%"></div>
+                                <span class="progress-text">97%</span>
+                            </div>
+                            <div class="view-options">
+                                <button class="view-btn active" data-view="progress"><i class="fas fa-chart-bar"></i> Progress Bar</button>
+                                <button class="view-btn" data-view="chart"><i class="fas fa-chart-pie"></i> Pie Chart</button>
+                            </div>
+                            <div class="chart-container">
+                                <canvas id="chart-1-2"></canvas>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="objective" id="objective1_3">
+                    <h3 class="objective-title"><i class="fas fa-tools"></i> 1.3: Tools, Applications & Services</h3>
+                    <p>Foster the development of tools, applications, and services supporting and leveraging the StratML standard for the benefit of various communities of interest.</p>
+                    
+                    <div class="performance-indicators">
+                        <div class="indicator">
+                            <div class="indicator-header">
+                                <span class="indicator-name">Tools Developed</span>
+                                <button class="expand-btn">+</button>
+                            </div>
+                            <div class="indicator-values">
+                                <span class="value target"><i class="fas fa-bullseye"></i> Target: Continuous Development</span>
+                                <span class="value actual"><i class="fas fa-chart-line"></i> Actual: Multiple Tools Available</span>
+                            </div>
+                            <div class="progress-container">
+                                <div class="progress-bar progress-over" style="width: 100%"></div>
+                                <span class="progress-text">100%</span>
+                            </div>
+                            <div class="view-options">
+                                <button class="view-btn active" data-view="progress"><i class="fas fa-chart-bar"></i> Progress Bar</button>
+                                <button class="view-btn" data-view="chart"><i class="fas fa-chart-pie"></i> Pie Chart</button>
+                            </div>
+                            <div class="chart-container">
+                                <canvas id="chart-1-3"></canvas>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="objective" id="objective1_4">
+                    <h3 class="objective-title"><i class="fas fa-globe"></i> 1.4: ISO Standard</h3>
+                    <p>Obtain approval and publication of Part 1 as an international (ISO) voluntary consensus standard, for potential use by all organizations worldwide.</p>
+                    
+                    <div class="performance-indicators">
+                        <div class="indicator">
+                            <div class="indicator-header">
+                                <span class="indicator-name">ISO Standard Status</span>
+                                <button class="expand-btn">+</button>
+                            </div>
+                            <div class="indicator-values">
+                                <span class="value target"><i class="fas fa-bullseye"></i> Target: ISO Publication</span>
+                                <span class="value actual"><i class="fas fa-chart-line"></i> Actual: Published (2015-02-11)</span>
+                            </div>
+                            <div class="progress-container">
+                                <div class="progress-bar progress-over" style="width: 100%"></div>
+                                <span class="progress-text">100%</span>
+                            </div>
+                            <div class="view-options">
+                                <button class="view-btn active" data-view="progress"><i class="fas fa-chart-bar"></i> Progress Bar</button>
+                                <button class="view-btn" data-view="chart"><i class="fas fa-chart-pie"></i> Pie Chart</button>
+                            </div>
+                            <div class="chart-container">
+                                <canvas id="chart-1-4"></canvas>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="objective" id="objective1_5">
+                    <h3 class="objective-title"><i class="fas fa-graduation-cap"></i> 1.5: Training</h3>
+                    <p>Provide training materials to assist developers and users of the StratML standard.</p>
+                    
+                    <div class="performance-indicators">
+                        <div class="indicator">
+                            <div class="indicator-header">
+                                <span class="indicator-name">Training Availability</span>
+                                <button class="expand-btn">+</button>
+                            </div>
+                            <div class="indicator-values">
+                                <span class="value target"><i class="fas fa-bullseye"></i> Target: Available Training</span>
+                                <span class="value actual"><i class="fas fa-chart-line"></i> Actual: Module Available (2016-02-03)</span>
+                            </div>
+                            <div class="progress-container">
+                                <div class="progress-bar progress-over" style="width: 100%"></div>
+                                <span class="progress-text">100%</span>
+                            </div>
+                            <div class="view-options">
+                                <button class="view-btn active" data-view="progress"><i class="fas fa-chart-bar"></i> Progress Bar</button>
+                                <button class="view-btn" data-view="chart"><i class="fas fa-chart-pie"></i> Pie Chart</button>
+                            </div>
+                            <div class="chart-container">
+                                <canvas id="chart-1-5"></canvas>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="section" id="part2">
+                <h2 class="section-title"><i class="fas fa-chart-line"></i> Part 2: Performance Plans and Reports</h2>
+                <p>Specify and foster usage of an XML standard extending Part 1 to include the additional information commonly contained in performance plans and reports.</p>
+
+                <div class="objective" id="objective2_1">
+                    <h3 class="objective-title"><i class="fas fa-book"></i> 2.1: ANSI/AIIM Publication</h3>
+                    <p>Publish Part 2, Performance Plans and Reports, as an American (ANSI/AIIM) national standard.</p>
+                    
+                    <div class="performance-indicators">
+                        <div class="indicator">
+                            <div class="indicator-header">
+                                <span class="indicator-name">Publication Status</span>
+                                <button class="expand-btn">+</button>
+                            </div>
+                            <div class="indicator-values">
+                                <span class="value target"><i class="fas fa-bullseye"></i> Target: Publication</span>
+                                <span class="value actual"><i class="fas fa-chart-line"></i> Actual: Published (2011-08-08)</span>
+                            </div>
+                            <div class="progress-container">
+                                <div class="progress-bar progress-over" style="width: 100%"></div>
+                                <span class="progress-text">100%</span>
+                            </div>
+                            <div class="view-options">
+                                <button class="view-btn active" data-view="progress"><i class="fas fa-chart-bar"></i> Progress Bar</button>
+                                <button class="view-btn" data-view="chart"><i class="fas fa-chart-pie"></i> Pie Chart</button>
+                            </div>
+                            <div class="chart-container">
+                                <canvas id="chart-2-1"></canvas>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="objective" id="objective2_2">
+                    <h3 class="objective-title"><i class="fas fa-file-code"></i> 2.2: StratML Part 2 Files</h3>
+                    <p>Convert performance plans and reports into StratML format to demonstrate and prove the elements of the standard.</p>
+                    
+                    <div class="performance-indicators">
+                        <div class="indicator">
+                            <div class="indicator-header">
+                                <span class="indicator-name">Files Converted</span>
+                                <button class="expand-btn">+</button>
+                            </div>
+                            <div class="indicator-values">
+                                <span class="value target"><i class="fas fa-bullseye"></i> Target: Continuous Growth</span>
+                                <span class="value actual"><i class="fas fa-chart-line"></i> Actual: 59 Files on StratML.us</span>
+                            </div>
+                            <div class="progress-container">
+                                <div class="progress-bar progress-on-track" style="width: 75%"></div>
+                                <span class="progress-text">75%</span>
+                            </div>
+                            <div class="view-options">
+                                <button class="view-btn active" data-view="progress"><i class="fas fa-chart-bar"></i> Progress Bar</button>
+                                <button class="view-btn" data-view="chart"><i class="fas fa-chart-pie"></i> Pie Chart</button>
+                            </div>
+                            <div class="chart-container">
+                                <canvas id="chart-2-2"></canvas>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="objective" id="objective2_3">
+                    <h3 class="objective-title"><i class="fas fa-tools"></i> 2.3: Tools, Applications & Services</h3>
+                    <p>Foster the development of tools, applications, and services supporting and leveraging the StratML standard for the benefit of various communities of interest.</p>
+                    
+                    <div class="performance-indicators">
+                        <div class="indicator">
+                            <div class="indicator-header">
+                                <span class="indicator-name">Tools Developed</span>
+                                <button class="expand-btn">+</button>
+                            </div>
+                            <div class="indicator-values">
+                                <span class="value target"><i class="fas fa-bullseye"></i> Target: Continuous Development</span>
+                                <span class="value actual"><i class="fas fa-chart-line"></i> Actual: Multiple Tools Available</span>
+                            </div>
+                            <div class="progress-container">
+                                <div class="progress-bar progress-over" style="width: 100%"></div>
+                                <span class="progress-text">100%</span>
+                            </div>
+                            <div class="view-options">
+                                <button class="view-btn active" data-view="progress"><i class="fas fa-chart-bar"></i> Progress Bar</button>
+                                <button class="view-btn" data-view="chart"><i class="fas fa-chart-pie"></i> Pie Chart</button>
+                            </div>
+                            <div class="chart-container">
+                                <canvas id="chart-2-3"></canvas>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="objective" id="objective2_4">
+                    <h3 class="objective-title"><i class="fas fa-project-diagram"></i> 2.4: NIEM Implementation Profile</h3>
+                    <p>Create an implementation profile for inclusion of StratML into a new Planning and Accountability domain in the National Information Exchange Model (NIEM).</p>
+                    
+                    <div class="performance-indicators">
+                        <div class="indicator">
+                            <div class="indicator-header">
+                                <span class="indicator-name">Profile Development</span>
+                                <button class="expand-btn">+</button>
+                            </div>
+                            <div class="indicator-values">
+                                <span class="value target"><i class="fas fa-bullseye"></i> Target: Profile Creation</span>
+                                <span class="value actual"><i class="fas fa-chart-line"></i> Actual: Drafted, On Hold</span>
+                            </div>
+                            <div class="progress-container">
+                                <div class="progress-bar progress-on-track" style="width: 60%"></div>
+                                <span class="progress-text">60%</span>
+                            </div>
+                            <div class="view-options">
+                                <button class="view-btn active" data-view="progress"><i class="fas fa-chart-bar"></i> Progress Bar</button>
+                                <button class="view-btn" data-view="chart"><i class="fas fa-chart-pie"></i> Pie Chart</button>
+                            </div>
+                            <div class="chart-container">
+                                <canvas id="chart-2-4"></canvas>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="objective" id="objective2_5">
+                    <h3 class="objective-title"><i class="fas fa-globe"></i> 2.5: ISO Standard</h3>
+                    <p>Obtain approval and publication of Part 2 as an international (ISO) voluntary consensus standard, for potential use by all organizations worldwide.</p>
+                    
+                    <div class="performance-indicators">
+                        <div class="indicator">
+                            <div class="indicator-header">
+                                <span class="indicator-name">ISO Standard Status</span>
+                                <button class="expand-btn">+</button>
+                            </div>
+                            <div class="indicator-values">
+                                <span class="value target"><i class="fas fa-bullseye"></i> Target: ISO Publication</span>
+                                <span class="value actual"><i class="fas fa-chart-line"></i> Actual: Published (2015-02-11)</span>
+                            </div>
+                            <div class="progress-container">
+                                <div class="progress-bar progress-over" style="width: 100%"></div>
+                                <span class="progress-text">100%</span>
+                            </div>
+                            <div class="view-options">
+                                <button class="view-btn active" data-view="progress"><i class="fas fa-chart-bar"></i> Progress Bar</button>
+                                <button class="view-btn" data-view="chart"><i class="fas fa-chart-pie"></i> Pie Chart</button>
+                            </div>
+                            <div class="chart-container">
+                                <canvas id="chart-2-5"></canvas>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="section" id="part3">
+                <h2 class="section-title"><i class="fas fa-plus-circle"></i> Part 3: Additional Elements</h2>
+                <p>Specify and foster usage of additional elements to support specific requirements such as those of the U.S. Government Performance and Results Act (GPRA) Modernization Act (GPRAMA).</p>
+
+                <div class="objective" id="objective3_1">
+                    <h3 class="objective-title"><i class="fas fa-balance-scale"></i> 3.1: GPRAMA</h3>
+                    <p>Specify and foster usage of additional elements to support the requirements of the U.S. Government Performance and Results Act (GPRA) Modernization Act (GPRAMA).</p>
+                    
+                    <div class="performance-indicators">
+                        <div class="indicator">
+                            <div class="indicator-header">
+                                <span class="indicator-name">GPRAMA Support</span>
+                                <button class="expand-btn">+</button>
+                            </div>
+                            <div class="indicator-values">
+                                <span class="value target"><i class="fas fa-bullseye"></i> Target: Full Support</span>
+                                <span class="value actual"><i class="fas fa-chart-line"></i> Actual: Partial Support</span>
+                            </div>
+                            <div class="progress-container">
+                                <div class="progress-bar progress-on-track" style="width: 70%"></div>
+                                <span class="progress-text">70%</span>
+                            </div>
+                            <div class="view-options">
+                                <button class="view-btn active" data-view="progress"><i class="fas fa-chart-bar"></i> Progress Bar</button>
+                                <button class="view-btn" data-view="chart"><i class="fas fa-chart-pie"></i> Pie Chart</button>
+                            </div>
+                            <div class="chart-container">
+                                <canvas id="chart-3-1"></canvas>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="objective" id="objective3_2">
+                    <h3 class="objective-title"><i class="fas fa-plus"></i> 3.2: Other Elements</h3>
+                    <p>Specify and foster usage of additional elements to support the requirements of other communities of interest.</p>
+                    
+                    <div class="performance-indicators">
+                        <div class="indicator">
+                            <div class="indicator-header">
+                                <span class="indicator-name">Additional Elements</span>
+                                <button class="expand-btn">+</button>
+                            </div>
+                            <div class="indicator-values">
+                                <span class="value target"><i class="fas fa-bullseye"></i> Target: Continuous Development</span>
+                                <span class="value actual"><i class="fas fa-chart-line"></i> Actual: Ongoing</span>
+                            </div>
+                            <div class="progress-container">
+                                <div class="progress-bar progress-on-track" style="width: 80%"></div>
+                                <span class="progress-text">80%</span>
+                            </div>
+                            <div class="view-options">
+                                <button class="view-btn active" data-view="progress"><i class="fas fa-chart-bar"></i> Progress Bar</button>
+                                <button class="view-btn" data-view="chart"><i class="fas fa-chart-pie"></i> Pie Chart</button>
+                            </div>
+                            <div class="chart-container">
+                                <canvas id="chart-3-2"></canvas>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="objective" id="objective3_3">
+                    <h3 class="objective-title"><i class="fas fa-book"></i> 3.3: ANSI/AIIM Publication</h3>
+                    <p>Publish Part 3, Additional Elements, as an American (ANSI/AIIM) national standard.</p>
+                    
+                    <div class="performance-indicators">
+                        <div class="indicator">
+                            <div class="indicator-header">
+                                <span class="indicator-name">Publication Status</span>
+                                <button class="expand-btn">+</button>
+                            </div>
+                            <div class="indicator-values">
+                                <span class="value target"><i class="fas fa-bullseye"></i> Target: Publication</span>
+                                <span class="value actual"><i class="fas fa-chart-line"></i> Actual: Not Yet Published</span>
+                            </div>
+                            <div class="progress-container">
+                                <div class="progress-bar progress-under" style="width: 30%"></div>
+                                <span class="progress-text">30%</span>
+                            </div>
+                            <div class="view-options">
+                                <button class="view-btn active" data-view="progress"><i class="fas fa-chart-bar"></i> Progress Bar</button>
+                                <button class="view-btn" data-view="chart"><i class="fas fa-chart-pie"></i> Pie Chart</button>
+                            </div>
+                            <div class="chart-container">
+                                <canvas id="chart-3-3"></canvas>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="section" id="stakeholders">
+                <h2 class="section-title"><i class="fas fa-users"></i> Stakeholders</h2>
+                <div class="stakeholders">
+                    <div class="stakeholder">
+                        <h3 class="stakeholder-name">Owen Ambur</h3>
+                        <p class="stakeholder-role">Co-Chair</p>
+                        <p class="stakeholder-description">Strategy Markup Language (StratML) Community</p>
+                    </div>
+                    <div class="stakeholder">
+                        <h3 class="stakeholder-name">Vincent M. Ma</h3>
+                        <p class="stakeholder-role">Co-Chair</p>
+                        <p class="stakeholder-description">Strategy Markup Language (StratML) Community</p>
+                    </div>
+                    <div class="stakeholder">
+                        <h3 class="stakeholder-name">AIIM</h3>
+                        <p class="stakeholder-role">Organization</p>
+                        <p class="stakeholder-description">Association for Information and Image Management</p>
+                    </div>
+                    <div class="stakeholder">
+                        <h3 class="stakeholder-name">ANSI</h3>
+                        <p class="stakeholder-role">Organization</p>
+                        <p class="stakeholder-description">American National Standards Institute</p>
+                    </div>
+                    <div class="stakeholder">
+                        <h3 class="stakeholder-name">ISO</h3>
+                        <p class="stakeholder-role">Organization</p>
+                        <p class="stakeholder-description">International Organization for Standardization</p>
+                    </div>
+                    <div class="stakeholder">
+                        <h3 class="stakeholder-name">NIEM</h3>
+                        <p class="stakeholder-role">Organization</p>
+                        <p class="stakeholder-description">National Information Exchange Model</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <footer>
+            <p>© 2024 Strategy Markup Language Community (SMLC)</p>
+            <p>This report was generated using an enhanced XSLT stylesheet for StratML documents.</p>
+            <button class="download-btn" id="download-xslt"><i class="fas fa-download"></i> Download Enhanced XSLT Stylesheet</button>
+        </footer>
+    </div>
+
+    <button class="mobile-toc-toggle" id="mobileTocToggle">
+        <i class="fas fa-list"></i>
+    </button>
+
+    <script>
+        // Initialize charts when the page loads
+        document.addEventListener('DOMContentLoaded', function() {
+            // Initialize all charts
+            initAllCharts();
+            
+            // Set up event listeners
+            setupEventListeners();
+            
+            // Hide all chart containers initially
+            document.querySelectorAll('.chart-container').forEach(container => {
+                container.style.display = 'none';
+            });
+            
+            // Set up first TOC link as active
+            document.querySelector('.toc-link').classList.add('active');
+        });
+
+        // Initialize all charts
+        function initAllCharts() {
+            // Part 1 Charts
+            createPieChart('chart-1-1', 'Publication Status', ['Completed', 'Remaining'], [100, 0], ['#2ecc71', '#ecf0f1']);
+            createPieChart('chart-1-2', 'Plans Converted Over Time', ['Completed', 'Remaining'], [97, 3], ['#2ecc71', '#ecf0f1']);
+            createPieChart('chart-1-3', 'Tools Developed', ['Completed', 'Remaining'], [100, 0], ['#2ecc71', '#ecf0f1']);
+            createPieChart('chart-1-4', 'ISO Standard Status', ['Completed', 'Remaining'], [100, 0], ['#2ecc71', '#ecf0f1']);
+            createPieChart('chart-1-5', 'Training Availability', ['Completed', 'Remaining'], [100, 0], ['#2ecc71', '#ecf0f1']);
+            
+            // Part 2 Charts
+            createPieChart('chart-2-1', 'Publication Status', ['Completed', 'Remaining'], [100, 0], ['#2ecc71', '#ecf0f1']);
+            createPieChart('chart-2-2', 'Files Converted', ['Completed', 'Remaining'], [75, 25], ['#f39c12', '#ecf0f1']);
+            createPieChart('chart-2-3', 'Tools Developed', ['Completed', 'Remaining'], [100, 0], ['#2ecc71', '#ecf0f1']);
+            createPieChart('chart-2-4', 'Profile Development', ['Completed', 'Remaining'], [60, 40], ['#f39c12', '#ecf0f1']);
+            createPieChart('chart-2-5', 'ISO Standard Status', ['Completed', 'Remaining'], [100, 0], ['#2ecc71', '#ecf0f1']);
+            
+            // Part 3 Charts
+            createPieChart('chart-3-1', 'GPRAMA Support', ['Completed', 'Remaining'], [70, 30], ['#f39c12', '#ecf0f1']);
+            createPieChart('chart-3-2', 'Additional Elements', ['Completed', 'Remaining'], [80, 20], ['#f39c12', '#ecf0f1']);
+            createPieChart('chart-3-3', 'Publication Status', ['Completed', 'Remaining'], [30, 70], ['#e74c3c', '#ecf0f1']);
+        }
+
+        // Create a pie chart
+        function createPieChart(canvasId, title, labels, data, colors) {
+            const ctx = document.getElementById(canvasId).getContext('2d');
+            new Chart(ctx, {
+                type: 'pie',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        data: data,
+                        backgroundColor: colors,
+                        borderColor: '#fff',
+                        borderWidth: 2
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            position: 'bottom',
+                            labels: {
+                                font: {
+                                    size: 12
+                                },
+                                padding: 20
+                            }
+                        },
+                        title: {
+                            display: true,
+                            text: title,
+                            font: {
+                                size: 16,
+                                weight: 'bold'
+                            },
+                            padding: 20
+                        }
+                    }
+                }
+            });
+        }
+
+        // Set up event listeners
+        function setupEventListeners() {
+            // TOC navigation
+            document.querySelectorAll('.toc-link').forEach(link => {
+                link.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    const targetId = this.getAttribute('href').substring(1);
+                    const targetElement = document.getElementById(targetId);
+                    
+                    if (targetElement) {
+                        // Update active link
+                        document.querySelectorAll('.toc-link').forEach(l => l.classList.remove('active'));
+                        this.classList.add('active');
+                        
+                        // Scroll to target
+                        targetElement.scrollIntoView({ behavior: 'smooth' });
+                        
+                        // Close mobile TOC if open
+                        document.querySelector('.toc-sidebar').classList.remove('mobile-open');
+                    }
+                });
+            });
+            
+            // Expand/collapse indicators
+            document.querySelectorAll('.indicator-header').forEach(header => {
+                header.addEventListener('click', function() {
+                    const indicator = this.parentElement;
+                    const chartContainer = indicator.querySelector('.chart-container');
+                    const viewOptions = indicator.querySelector('.view-options');
+                    
+                    // Toggle chart container visibility
+                    if (chartContainer.style.display === 'none') {
+                        chartContainer.style.display = 'block';
+                        this.querySelector('.expand-btn').textContent = '-';
+                    } else {
+                        chartContainer.style.display = 'none';
+                        this.querySelector('.expand-btn').textContent = '+';
+                    }
+                });
+            });
+            
+            // View options (progress bar vs chart)
+            document.querySelectorAll('.view-btn').forEach(btn => {
+                btn.addEventListener('click', function() {
+                    const viewType = this.getAttribute('data-view');
+                    const indicator = this.closest('.indicator');
+                    const progressContainer = indicator.querySelector('.progress-container');
+                    const chartContainer = indicator.querySelector('.chart-container');
+                    
+                    // Update active button
+                    indicator.querySelectorAll('.view-btn').forEach(b => b.classList.remove('active'));
+                    this.classList.add('active');
+                    
+                    // Show selected view
+                    if (viewType === 'progress') {
+                        progressContainer.style.display = 'block';
+                        chartContainer.style.display = 'none';
+                    } else {
+                        progressContainer.style.display = 'none';
+                        chartContainer.style.display = 'block';
+                    }
+                });
+            });
+            
+            // Mobile TOC toggle
+            document.getElementById('mobileTocToggle').addEventListener('click', function() {
+                document.querySelector('.toc-sidebar').classList.toggle('mobile-open');
+            });
+            
+            // Download XSLT button
+            document.getElementById('download-xslt').addEventListener('click', function() {
+                downloadXSLT();
+            });
+        }
+
+        // Download XSLT function
+        function downloadXSLT() {
+            
+            
+            // Create a Blob with the XSLT content
+            const blob = new Blob([xsltContent], { type: 'application/xslt+xml' });
+            const url = URL.createObjectURL(blob);
+            
+            // Create a temporary link to trigger the download
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'enhanced-stratml.xsl';
+            document.body.appendChild(a);
+            a.click();
+            
+            // Clean up
+            setTimeout(function() {
+                document.body.removeChild(a);
+                URL.revokeObjectURL(url);
+            }, 100);
+        }
+    </script>
+</body>
+</html>
